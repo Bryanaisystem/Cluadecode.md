@@ -4,6 +4,11 @@
 // Where it goes: after the sitemap fetch, on the status===1 branch.
 // References an upstream node literally named "HTTP Request" — rename to match, or edit
 // the $('HTTP Request') reference below.
+//
+// Real-implementation note: the live `Variables workflow.json` sends this prompt to
+// Gemini via Vertex AI (gemini-2.5-pro) using a JWT service-account bearer token, not a
+// raw Gemini API key — see infra/infra-notes.md for the project/service-account details
+// and a real inconsistency found in the auth flow on this workflow's fallback branch.
 
 const raw = $('HTTP Request').first().json.data ?? '';
 const xml = String(raw);

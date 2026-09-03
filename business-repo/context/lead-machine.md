@@ -9,6 +9,12 @@
 2. **Person-finding** (per business)
    - Brave Search + Gemini to identify the actual decision-maker (owner/manager)
    - Hunter.io for email discovery/pattern matching
+   - **Real implementation note:** the live `My_workflow.json` (Role/Title Verification)
+     does not call Brave Search at all — it uses Gemini via Vertex AI with the built-in
+     `googleSearch` grounding tool for the whole search-and-verify step, no separate
+     search-API node. This is the Gemini-only alternative the course also teaches;
+     there's no Brave/SerpAPI fallback chain currently built anywhere in the real
+     pipeline. See `infra/infra-notes.md` for the full real-vs-documented breakdown.
 
 3. **Email verification**
    - Run the full list through a verification tool before any send (Standard/Ultra/Legacy mode trade-off: speed/cost vs. thoroughness)

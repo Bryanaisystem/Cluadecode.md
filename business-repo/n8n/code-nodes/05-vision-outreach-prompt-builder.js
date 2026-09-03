@@ -7,6 +7,13 @@
 // `pages` array. Also references "Code in JavaScript1" (must output website_domain —
 // this is 01-website-parser.js, rename to match) and "Get row(s) in sheet" (must output
 // name, first_name, last_name).
+//
+// Real-implementation note: in the live `Variables workflow.json`, this prompt is sent
+// via Vertex AI using **gemini-3.1-pro-preview** — a different, newer model than the
+// gemini-2.5-pro used earlier in the same workflow for sitemap parsing and vision
+// review. Confirm whether running the newest preview model only on this
+// highest-value step is intentional. Auth is the same JWT service-account flow as the
+// rest of the pipeline (see infra/infra-notes.md).
 
 const rawText = $input.first().json?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
 let s = String(rawText).trim();

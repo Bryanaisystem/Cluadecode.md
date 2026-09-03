@@ -7,6 +7,16 @@
 // Output: { result: 1 | 2 | 3 } — 1 = real reply, 2 = no reply, 3 = auto reply.
 // Wire into a Switch node: real reply -> stop follow-ups/alert operator; no reply ->
 // continue sequence; auto-reply -> treat as no reply but maybe suppress notifications.
+//
+// Real-implementation note: this code runs verbatim, unmodified, in all 16 copies
+// across the 4 parallel lanes of the live `Outreach System.json` — no drift there. But
+// the actual Switch wiring diverges from the guidance above: both result=1 (real reply)
+// AND result=3 (auto-reply) currently terminate the sequence (each just fires an
+// internal notification email to the operator's own inbox and stops); only result=2
+// (no reply) continues on to the next follow-up. Confirm whether auto-reply should
+// keep behaving like a real reply (as built) or be switched to continue the sequence
+// like no-reply (as this file's own comment recommends) — this is a real behavioral
+// choice to make, not a bug to silently fix.
 
 const thread = items[0].json;
 

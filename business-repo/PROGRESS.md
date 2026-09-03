@@ -135,13 +135,17 @@ infra instead of quietly rebuilding it.
 - [ ] Run every generated email through the pre-send 10-second checklist in
       `context/email-framework.md` before it goes out — if it fails, fix the variables,
       not the structure; if no real friction exists, don't force one
-- [ ] **Gap to resolve:** `templates/email-templates.md` only has templates for
-      Outreach #1, Follow-up #2, and Follow-up #4 — there is no Follow-up #3 template,
-      but `context/cadence-and-scripts.md` runs a Day 1/3/5/7 cadence (4 touches) and
-      `context/email-framework.md` describes Follow-up #3 rules ("the last useful
-      nudge") without a template. Draft a Follow-up #3 template following those rules
-      before Step 4 is actually usable end-to-end, and add it to
-      `templates/email-templates.md`
+- [ ] **Gap to resolve (corrected 2026-09-03):** `templates/email-templates.md` has no
+      Follow-up #3 template — but the real `Outreach System.json` workflow already has
+      a structural Follow-up 3 stage built (the 4th send in each of its 4 parallel
+      lanes). The gap isn't a missing stage, it's missing *content*: every "Reply to a
+      message" node in the live workflow (the actual Follow-up 1/2/3 sends) has no
+      subject or message configured at all, and the initial pitch send nodes
+      ("Send a message1/4/26/39") currently hold literal placeholder text
+      ("ydemstrnaebsDaa" / "maregntfsFDA"), not the real Email X content. Write the real
+      Outreach #1 / Follow-up #2 / Follow-up #3 / Follow-up #4 content into those nodes
+      directly (and add the missing Follow-up #3 template to
+      `templates/email-templates.md` for reference) before Step 4/5 can run for real.
 - [ ] Confirm whoever is sending understands subject line rules and the Yes Flow
       (classify permission-yes / curious-yes / call-yes, respond fast, one instruction,
       one qualifying question) from `context/email-framework.md` before the first send
@@ -217,6 +221,78 @@ infra instead of quietly rebuilding it.
 
 ---
 
+## Known Inconsistencies to Resolve
+
+Found 2026-09-03 by mapping the three real n8n workflow exports
+(`n8n/workflows/My_workflow.json`, `Variables workflow.json`, `Outreach System.json`)
+node-by-node against each other and against the docs in `context/` and
+`n8n/code-nodes/`. These are flagged for a decision, not auto-fixed — see
+`infra/infra-notes.md` "Real system reference" section for full detail on each.
+
+- [ ] **Cadence timing is currently non-functional.** Every Wait node meant to space out
+      the cadence — the 3–7 day jitter fed by `07-randomizer.js`'s output, and the named
+      "3 Day Wait" / "2 Day wait" / "2 day Wait" / "1 day wait" nodes in each of the 4
+      parallel lanes of `Outreach System.json` — has `amount: 1` with no `unit` set,
+      which n8n defaults to **seconds**. As exported, the whole 4-touch sequence would
+      fire within seconds for all leads in flight, not spread across ~8 days. Also, the
+      randomizer's `number` output isn't wired into any Wait node's amount at all — it's
+      computed and discarded. This is the highest-priority fix before any real send.
+- [ ] **Two different GCP projects/service accounts, one shared JWT credential.**
+      `My_workflow.json` and `Variables workflow.json` each set a different
+      `project_id`/`client_email` at runtime, but both sign their JWT through the same
+      n8n credential ("JWT Auth account", id `HAyFxiTyNsG7gBTW`). A JWT's signature only
+      validates against the private key actually loaded in that credential, so at most
+      one of the two project/service-account pairs can be authenticating successfully
+      right now. Decide on one canonical project + service account, or give each
+      workflow its own named credential.
+- [ ] **Mixed Google auth method inside `Variables workflow.json`.** Every Gemini call
+      authorizes via the JWT-derived token except the `mode: 2` sitemap-index fallback
+      branch's Gemini call, which authorizes via the VM metadata-server token endpoint
+      instead. Confirm this is intentional or standardize on one method.
+- [ ] **Two Gemini model versions in one workflow.** `Variables workflow.json` uses
+      `gemini-2.5-pro` for sitemap parsing and vision review, but
+      `gemini-3.1-pro-preview` for the final outreach-variable-generation call.
+      `My_workflow.json` separately uses `gemini-2.5-flash`. Decide if this spread is
+      intentional.
+- [ ] **Screenshot API called at two different IPs** within the same workflow
+      (`35.211.112.200` on the direct sitemap path, `35.223.4.220` on the sitemap-index
+      fallback path) — almost certainly one is stale from a VM restart (per the
+      documented IP-drift gotcha). Confirm the VM's current IP and fix the stale branch,
+      or reserve a static IP.
+- [ ] **All Gmail sends are hardcoded to Bryan's own inbox**
+      (`bryandalmeida1000@gmail.com`) across all 80 Gmail nodes in
+      `Outreach System.json` — none reference the lead's real email dynamically yet.
+      Expected at this stage (manual validation phase) but must change before any real
+      send.
+- [ ] **Actual outreach email content isn't written into the workflow yet.** Initial
+      pitch nodes hold placeholder gibberish text; all 12 Follow-up reply nodes have no
+      content at all. See the Step 4 gap item above.
+- [ ] **"Follow up 3" notification subjects are mislabeled as "Follow up 2"** — a
+      copy-paste bug repeated identically in all 4 parallel lanes (e.g. `Send a message
+      11/12/13` read "Reply/Auto Reply/No Reply - Follow up 2" but sit in the 4th-stage
+      position, after the real Follow-up 2 stage already fired its own correctly-labeled
+      notifications). Cosmetic (affects only Bryan's own notification emails, not
+      prospect-facing content) but worth fixing so the operator alerts aren't confusing.
+- [ ] **Auto-reply currently behaves like a real reply, not like no-reply.** The Switch
+      after each reply-check sends both result=1 (real reply) and result=3 (auto-reply)
+      to a notification-then-stop path; only result=2 (no reply) continues the cadence.
+      `08-reply-checker.js`'s own header comment recommends auto-reply continue the
+      sequence like no-reply. Decide which behavior is actually wanted.
+- [ ] **"Switch4" (the 4-lane distributor right after the trigger) has dead conditions.**
+      All four of its rules compare an empty `leftValue` against `"1"`/`"2"`/`"3"`/`"4"`,
+      which can never evaluate true as configured. Check in the n8n UI whether a
+      fallback output silently handles routing, or whether this needs to be wired to a
+      real expression (e.g. a lane-assignment value per lead).
+- [ ] **Google Sheet columns differ from the schema documented in
+      `infra/infra-notes.md`** — see that file's "Real system reference" section for
+      the full real-vs-documented column list (`Email Adress`, `Done-Research`,
+      `Title catagory`, `Unfit?`, `Stop-30`, `subject_line`, `review_asset_exists`,
+      `recogonizable_reason`, etc.). Reconcile deliberately before writing new
+      automation against this sheet.
+- [ ] **Leftover debug node** — `Code in JavaScript5` right after the trigger in
+      `Outreach System.json` just sets `item.json.myNewField = 1` and does nothing else.
+      Harmless but dead; safe to delete once confirmed unused.
+
 ## Decisions & Notes
 
 Log every real decision here as it's made — sub-niche/metro pick and why, pricing
@@ -236,3 +312,13 @@ findings. Keep entries dated.
   Claude Code doesn't have from this session (GCP console/SSH, the n8n instance, Gmail,
   Google Sheets, Instantly.ai, Airtable) — those checks need to be run by Bryan/Jon
   directly, with results logged back here.
+- **2026-09-03** — Bryan added the three real, currently-built n8n workflow exports to
+  `n8n/workflows/` (`My_workflow.json`, `Variables workflow.json`,
+  `Outreach System.json`). Mapped all three node-by-node against `context/`,
+  `infra/infra-notes.md`, and `n8n/code-nodes/`. Findings folded into
+  `infra/infra-notes.md` ("Real system reference" section), `context/lead-machine.md`,
+  the relevant `n8n/code-nodes/*.js` header comments, and the new **Known
+  Inconsistencies to Resolve** section above. Headline finding: the cadence's Wait nodes
+  are all misconfigured to wait ~1 second instead of days, so the 4-touch sequence is
+  currently non-functional as exported — this is the top blocker before Step 5 can run
+  for real, ahead of even the missing email content.
