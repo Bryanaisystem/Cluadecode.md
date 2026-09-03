@@ -61,10 +61,11 @@ infra instead of quietly rebuilding it.
       gemini-2.5-flash), Brave Search (2,000/month total, community node install),
       SerpAPI (250/month, non-commercial only), Hunter.io balance, and the bulk
       email-verification tool balance — all documented in `n8n/lead-machine-gotchas.md`
-- [ ] Create a `.gitignore` for this repo — `CLAUDE.md` and `README.md` both instruct
+- [x] Create a `.gitignore` for this repo — `CLAUDE.md` and `README.md` both instruct
       "never commit real lead data / API keys / service account JSON / `.env` files —
-      see `.gitignore`," but no `.gitignore` currently exists in the repo (verified via
-      `git ls-files`); this is a real gap, not just documentation drift
+      see `.gitignore`," but no `.gitignore` currently existed in the repo (verified via
+      `git ls-files`); added one covering secrets, lead data files, and build/editor
+      cruft
 - [ ] Confirm this repo is actually set to **private** on GitHub (`README.md` rule)
 - [ ] Write up a short infra audit summary in **Decisions & Notes** below: what's
       healthy, what's broken, what needs fixing before Step 2 starts
@@ -230,3 +231,8 @@ findings. Keep entries dated.
 - **2026-09-03** — Restarting at Step 1 (infrastructure audit) rather than Step 2
   (niche/metro lock), per explicit direction — auditing what already exists before
   picking where to point it.
+- **2026-09-03** — Added `.gitignore` (secrets, lead data files, build/editor cruft) as
+  the first completed Step 1 sub-task. Everything else in Step 1 requires live access
+  Claude Code doesn't have from this session (GCP console/SSH, the n8n instance, Gmail,
+  Google Sheets, Instantly.ai, Airtable) — those checks need to be run by Bryan/Jon
+  directly, with results logged back here.

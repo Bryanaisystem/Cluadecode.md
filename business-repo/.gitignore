@@ -1,0 +1,33 @@
+# Secrets — never commit
+.env
+.env.*
+*.pem
+*.key
+service-account*.json
+credentials*.json
+*-credentials.json
+
+# Real lead/prospect data — leads live in Airtable/Google Sheets, not this repo
+leads/
+*.csv
+*.xlsx
+!templates/*.csv
+!templates/*.xlsx
+
+# n8n exports can embed live credentials — export sanitized JSON only
+n8n/workflows/*.json.bak
+
+# Python (infra/screenshot-api)
+__pycache__/
+*.pyc
+venv/
+.venv/
+
+# Node (if any tooling gets added later)
+node_modules/
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
